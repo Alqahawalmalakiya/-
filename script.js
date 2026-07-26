@@ -202,6 +202,7 @@ function printInvoice() {
   window.print();
 }
 
+// 2. تحميل كـ PDF بأعلى جودة حتى من الجوال
 function generatePDF() {
   const invoiceElement = document.getElementById("invoiceA4");
   const pdfBtn = document.getElementById("pdfBtn");
@@ -210,7 +211,15 @@ function generatePDF() {
   pdfBtn.textContent = "جاري التحويل...";
   pdfBtn.disabled = true;
 
-  html2canvas(invoiceElement, { scale: 2, useCORS: true }).then(canvas => {
+  // حفظ نسبة التصغير الحالية وإعادتها لـ 100% مؤقتاً لضمان دقة A4 الحقيقية
+  const currentZoom = invoiceElement.style.zoom || "";
+  invoiceElement.style.zoom = "1";
+
+  html2canvas(invoiceElement, { 
+    scale: 2, 
+    useCORS: true,
+    windowWidth: 1200 // إجبار المكتبة على أخذ المقاس الكامل وليس مقاس شاشة الجوال
+  }).then(canvas => {
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -222,22 +231,37 @@ function generatePDF() {
     const invNum = document.getElementById("invoiceNumber").value || "Invoice";
     pdf.save(`فاتورة_${invNum}.pdf`);
 
+    // إعادة التصغير لشاشة الجوال بعد انتهاء التحميل
+    invoiceElement.style.zoom = currentZoom;
     pdfBtn.textContent = originalText;
     pdfBtn.disabled = false;
   }).catch(err => {
-    alert("تنبيه: لتجنب مشاكل سياسات الأمان (CORS)، يرجى تشغيل الملفات على سيرفر محلي أو رفع صورة القالب محلياً.");
+    invoiceElement.style.zoom = currentZoom;
+    alert("تنبيه: لتجنب مشاكل سياسات الأمان (CORS) مع الصور الخارجية، يرجى تشغيل الملفات على سيرفر محلي أو رفع صورة القالب محلياً.");
     pdfBtn.textContent = originalText;
     pdfBtn.disabled = false;
   });
 }
 
+// 3. حفظ كصورة PNG بأعلى جودة من الجوال
 function generatePNG() {
   const invoiceElement = document.getElementById("invoiceA4");
-  html2canvas(invoiceElement, { scale: 2, useCORS: true }).then(canvas => {
+  const currentZoom = invoiceElement.style.zoom || "";
+  invoiceElement.style.zoom = "1";
+
+  html2canvas(invoiceElement, { 
+    scale: 2, 
+    useCORS: true,
+    windowWidth: 1200 
+  }).then(canvas => {
     const link = document.createElement("a");
     const invNum = document.getElementById("invoiceNumber").value || "Invoice";
     link.download = `فاتورة_${invNum}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+    
+    invoiceElement.style.zoom = currentZoom;
+  }).catch(err => {
+    invoiceElement.style.zoom = currentZoom;
   });
 }
