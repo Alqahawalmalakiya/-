@@ -208,47 +208,61 @@ function startNewInvoice() {
 function printInvoice() {
   window.print();
 }
-
-// 2. تحميل كـ PDF بأعلى جودة حتى من الجوال
+// 2. تحميل كـ PDF (بتقنية Blob الآمنة للجوالات)
 function generatePDF() {
   const invoiceElement = document.getElementById("invoiceA4");
   const pdfBtn = document.getElementById("pdfBtn");
   const originalText = pdfBtn.textContent;
   
-  pdfBtn.textContent = "جاري التحويل...";
+  pdfBtn.textContent = "جاري التجهيز...";
   pdfBtn.disabled = true;
 
+  // حفظ نسبة التصغير الحالية وإعادتها لـ 100% مؤقتاً
   const currentZoom = invoiceElement.style.zoom || "";
   invoiceElement.style.zoom = "1";
 
   html2canvas(invoiceElement, { 
     scale: 2, 
     useCORS: true,
-    windowWidth: 1200
+    allowTaint: true, // سماح بمعالجة الصور حتى لو كانت خارجية
+    windowWidth: 1200 
   }).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
     
     const invNum = document.getElementById("invoiceNumber").value || "Invoice";
-    pdf.save(`فاتورة_${invNum}.pdf`);
-
+    
+    // تقنية إجبار الجوال على التحميل مباشرة
+    const pdfBlob = pdf.output('blob');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    
+    const downloadLink = document.createElement('a');
+    downloadLink.href = blobUrl;
+    downloadLink.download = `فاتورة_${invNum}.pdf`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    // تنظيف الذاكرة وإعادة التصغير
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     invoiceElement.style.zoom = currentZoom;
     pdfBtn.textContent = originalText;
     pdfBtn.disabled = false;
   }).catch(err => {
     invoiceElement.style.zoom = currentZoom;
-    alert("تنبيه: لتجنب مشاكل سياسات الأمان (CORS) مع الصور الخارجية، يرجى تشغيل الملفات على سيرفر محلي أو رفع صورة القالب محلياً.");
     pdfBtn.textContent = originalText;
     pdfBtn.disabled = false;
+    alert("حدث خطأ في التحميل! السبب هو منع المتصفح لقراءة صورة القالب. يرجى التأكد من أن صورة الخلفية مرفوعة محلياً معك في نفس المجلد باسم invoice.png");
+    console.error("Download Error:", err);
   });
 }
 
-// 3. حفظ كصورة PNG بأعلى جودة من الجوال (مع تحسين حالة الزر والخطأ)
+// 3. حفظ كصورة PNG (بتقنية Blob المضمونة)
 function generatePNG() {
   const invoiceElement = document.getElementById("invoiceA4");
   const pngBtn = document.getElementById("pngBtn");
@@ -263,21 +277,29 @@ function generatePNG() {
   html2canvas(invoiceElement, { 
     scale: 2, 
     useCORS: true,
+    allowTaint: true,
     windowWidth: 1200 
   }).then(canvas => {
-    const link = document.createElement("a");
-    const invNum = document.getElementById("invoiceNumber").value || "Invoice";
-    link.download = `فاتورة_${invNum}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    
-    invoiceElement.style.zoom = currentZoom;
-    pngBtn.textContent = originalText;
-    pngBtn.disabled = false;
+    canvas.toBlob(function(blob) {
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const invNum = document.getElementById("invoiceNumber").value || "Invoice";
+      
+      link.href = blobUrl;
+      link.download = `فاتورة_${invNum}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      invoiceElement.style.zoom = currentZoom;
+      pngBtn.textContent = originalText;
+      pngBtn.disabled = false;
+    }, 'image/png');
   }).catch(err => {
     invoiceElement.style.zoom = currentZoom;
-    alert("تنبيه: لتجنب مشاكل سياسات الأمان (CORS) مع الصور الخارجية، يرجى تشغيل الملفات على سيرفر محلي أو رفع صورة القالب محلياً.");
     pngBtn.textContent = originalText;
     pngBtn.disabled = false;
+    alert("لم يتم الحفظ! تأكد أن صورة القالب ليست من رابط خارجي يحظر التحميل.");
   });
 }
