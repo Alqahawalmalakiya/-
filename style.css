@@ -198,3 +198,79 @@ input:focus, textarea:focus {
     page-break-after: always;
   }
 }
+/* ==========================================================================
+   دعم شاشات الجوال والتابلت (Responsive Design)
+   ========================================================================== */
+
+/* للشاشات المتوسطة والتابلت (أقل من 992 بكسل) */
+@media (max-width: 992px) {
+  .main-container {
+    flex-direction: column; /* جعل نموذج الإدخال بالأعلى ومعاينة الفاتورة بالأسفل */
+    padding: 15px;
+    gap: 20px;
+  }
+
+  .form-section {
+    width: 100%;
+    max-height: none; /* إلغاء التمرير الداخلي للنموذج ليعرض بكامل ارتفاعه */
+    overflow-y: visible;
+  }
+
+  .preview-section {
+    width: 100%;
+    overflow-x: auto; /* إتاحة التمرير الأفقي بسلاسة لمشاهدة الفاتورة */
+    padding-bottom: 20px;
+    -webkit-overflow-scrolling: touch; /* تمرير ناعم جداً على أجهزة الآيفون والآيباد */
+    justify-content: flex-start;
+  }
+}
+
+/* للشاشات الصغيرة والجوالات (أقل من 576 بكسل) */
+@media (max-width: 576px) {
+  .top-nav {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+    padding: 15px;
+  }
+
+  .top-nav h1 {
+    font-size: 18px;
+  }
+
+  .nav-links {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* جعل الحقول المتجاورة تنزل تحت بعضها لتسهيل الكتابة على الشاشات الصغيرة */
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* جعل أزرار (الطباعة، PDF، PNG، فاتورة جديدة) تحت بعضها وتملأ الشاشة */
+  .actions {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px; /* تكبير الخط قليلاً لتسهيل الضغط بالإصبع */
+  }
+
+  /* تحسين عرض حاوية عناصر الخدمات على الجوال */
+  .service-item-form {
+    padding: 20px 10px 10px 10px;
+  }
+
+  .remove-service-btn {
+    top: 5px;
+    left: 5px;
+    width: 28px;
+    height: 28px;
+  }
+}
