@@ -1,6 +1,6 @@
 /**
  * script.js
- * إدارة النموذج والربط اللحظي ورسم الخطوط والنصوص
+ * إدارة النموذج والربط اللحظي ورسم الخطوط والنصوص (نسخة محمية ومؤكدة)
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -28,21 +28,26 @@ function initApp() {
                     String(today.getDate()).padStart(2, '0');
   document.getElementById("invoiceDate").value = dateString;
 
-  // رقم الفاتورة المتسلسل
+  // رقم الفاتورة المتسلسل مع حماية ضد القيمة غير الرقمية (NaN)
   let lastInvoiceNum = localStorage.getItem("last_invoice_number") || "0193";
-  let nextNum = String(parseInt(lastInvoiceNum, 10) + 1).padStart(4, '0');
+  let parsedNum = parseInt(lastInvoiceNum, 10);
+  if (isNaN(parsedNum)) parsedNum = 193; // قيمة افتراضية آمنة في حال حدوث خطأ بالذاكرة
+  
+  let nextNum = String(parsedNum + 1).padStart(4, '0');
   document.getElementById("invoiceNumber").value = nextNum;
 
-  // إضافة خدمة افتراضية أولى (تم تعديل حقل أيام العمل ليقبل نص)
+  // إضافة خدمة افتراضية أولى
   addServiceRow("خدمة ضيافة", "طاولة استقبال مع 10 اصناف من المشروبات الحارة مع قهوجي مباشر", "٢/٢٧ صفر", 1000);
   
   renderInvoice();
 }
 
-// دالة إضافة صف خدمة (حقل أيام العمل نوعه text الآن)
+// دالة إضافة صف خدمة (حقل أيام العمل يقبل النصوص والتواريخ)
 function addServiceRow(item = "", desc = "", days = "٢/٢٧ صفر", price = 0) {
   const container = document.getElementById("servicesContainer");
-  const id = Date.now() + Math.random();
+  
+  // استخدام عدد صحيح تماماً لتجنب أي مشاكل بالكسور العشرية في متصفحات الجوال
+  const id = Date.now() + Math.floor(Math.random() * 1000);
   
   const serviceDiv = document.createElement("div");
   serviceDiv.className = "service-item-form";
@@ -151,11 +156,13 @@ function renderInvoice() {
   drawText(positions.footerContact.label + footerPhone, positions.footerContact);
 }
 
-// دالة رسم النصوص
+// دالة رسم النصوص (مع تحسين الفحص لتجنب اختفاء النصوص عند الفراغ)
 function drawText(text, config) {
-  if (!text && text !== 0) return;
+  const content = config.text !== undefined ? config.text : text;
+  if (!content && content !== 0) return;
+  
   const div = document.createElement("div");
-  div.textContent = config.text || text;
+  div.textContent = content;
   div.style.position = "absolute";
   div.style.top = config.top + "px";
   
@@ -211,14 +218,13 @@ function generatePDF() {
   pdfBtn.textContent = "جاري التحويل...";
   pdfBtn.disabled = true;
 
-  // حفظ نسبة التصغير الحالية وإعادتها لـ 100% مؤقتاً لضمان دقة A4 الحقيقية
   const currentZoom = invoiceElement.style.zoom || "";
   invoiceElement.style.zoom = "1";
 
   html2canvas(invoiceElement, { 
     scale: 2, 
     useCORS: true,
-    windowWidth: 1200 // إجبار المكتبة على أخذ المقاس الكامل وليس مقاس شاشة الجوال
+    windowWidth: 1200
   }).then(canvas => {
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
@@ -231,7 +237,6 @@ function generatePDF() {
     const invNum = document.getElementById("invoiceNumber").value || "Invoice";
     pdf.save(`فاتورة_${invNum}.pdf`);
 
-    // إعادة التصغير لشاشة الجوال بعد انتهاء التحميل
     invoiceElement.style.zoom = currentZoom;
     pdfBtn.textContent = originalText;
     pdfBtn.disabled = false;
@@ -243,9 +248,15 @@ function generatePDF() {
   });
 }
 
-// 3. حفظ كصورة PNG بأعلى جودة من الجوال
+// 3. حفظ كصورة PNG بأعلى جودة من الجوال (مع تحسين حالة الزر والخطأ)
 function generatePNG() {
   const invoiceElement = document.getElementById("invoiceA4");
+  const pngBtn = document.getElementById("pngBtn");
+  const originalText = pngBtn.textContent;
+  
+  pngBtn.textContent = "جاري الحفظ...";
+  pngBtn.disabled = true;
+
   const currentZoom = invoiceElement.style.zoom || "";
   invoiceElement.style.zoom = "1";
 
@@ -261,7 +272,12 @@ function generatePNG() {
     link.click();
     
     invoiceElement.style.zoom = currentZoom;
+    pngBtn.textContent = originalText;
+    pngBtn.disabled = false;
   }).catch(err => {
     invoiceElement.style.zoom = currentZoom;
+    alert("تنبيه: لتجنب مشاكل سياسات الأمان (CORS) مع الصور الخارجية، يرجى تشغيل الملفات على سيرفر محلي أو رفع صورة القالب محلياً.");
+    pngBtn.textContent = originalText;
+    pngBtn.disabled = false;
   });
 }
