@@ -208,8 +208,10 @@ function startNewInvoice() {
 function printInvoice() {
   window.print();
 }
-// 2. تحميل كـ PDF (بتقنية Blob الآمنة للجوالات)
-function generatePDF() {
+// ==========================================================================
+// 2. تحميل كـ PDF (مع دعم نافذة الحفظ والمشاركة الرسمية للجوالات)
+// ==========================================================================
+async function generatePDF() {
   const invoiceElement = document.getElementById("invoiceA4");
   const pdfBtn = document.getElementById("pdfBtn");
   const originalText = pdfBtn.textContent;
@@ -217,16 +219,21 @@ function generatePDF() {
   pdfBtn.textContent = "جاري التجهيز...";
   pdfBtn.disabled = true;
 
-  // حفظ نسبة التصغير الحالية وإعادتها لـ 100% مؤقتاً
   const currentZoom = invoiceElement.style.zoom || "";
   invoiceElement.style.zoom = "1";
 
-  html2canvas(invoiceElement, { 
-    scale: 2, 
-    useCORS: true,
-    allowTaint: true, // سماح بمعالجة الصور حتى لو كانت خارجية
-    windowWidth: 1200 
-  }).then(canvas => {
+  // تقليل استهلاك الذاكرة قليلاً على الجوال لتجنب الانهيار الصامت
+  const isMobile = window.innerWidth < 768;
+  const renderScale = isMobile ? 1.5 : 2;
+
+  try {
+    const canvas = await html2canvas(invoiceElement, { 
+      scale: renderScale, 
+      useCORS: true,
+      allowTaint: true,
+      windowWidth: 1200 
+    });
+
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -236,34 +243,43 @@ function generatePDF() {
     pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
     
     const invNum = document.getElementById("invoiceNumber").value || "Invoice";
-    
-    // تقنية إجبار الجوال على التحميل مباشرة
+    const fileName = `فاتورة_${invNum}.pdf`;
     const pdfBlob = pdf.output('blob');
-    const blobUrl = URL.createObjectURL(pdfBlob);
-    
-    const downloadLink = document.createElement('a');
-    downloadLink.href = blobUrl;
-    downloadLink.download = `فاتورة_${invNum}.pdf`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    
-    // تنظيف الذاكرة وإعادة التصغير
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+    // إذا كان المستخدم من الجوال ويدعم ميزة مشاركة الملفات الرسمية
+    if (navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], fileName, { type: pdfBlob.type })] })) {
+      const file = new File([pdfBlob], fileName, { type: pdfBlob.type });
+      await navigator.share({
+        files: [file],
+        title: `فاتورة رقم ${invNum}`,
+        text: 'مرفق لكم الفاتورة'
+      });
+    } else {
+      // الطريقة المعتمدة للكمبيوتر والمتصفحات التي لا تدعم المشاركة
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    }
+  } catch (err) {
+    // إذا رفض الجوال التحميل لأي سبب، نفتح الملف في صفحة جديدة ليحفظه يدوياً
+    alert("تنبيه: إذا لم يبدأ التحميل تلقائياً في جوالك، يرجى استخدام زر (طباعة الفاتورة) واختيار (حفظ كـ PDF).");
+    console.error("PDF Error:", err);
+  } finally {
     invoiceElement.style.zoom = currentZoom;
     pdfBtn.textContent = originalText;
     pdfBtn.disabled = false;
-  }).catch(err => {
-    invoiceElement.style.zoom = currentZoom;
-    pdfBtn.textContent = originalText;
-    pdfBtn.disabled = false;
-    alert("حدث خطأ في التحميل! السبب هو منع المتصفح لقراءة صورة القالب. يرجى التأكد من أن صورة الخلفية مرفوعة محلياً معك في نفس المجلد باسم invoice.png");
-    console.error("Download Error:", err);
-  });
+  }
 }
 
-// 3. حفظ كصورة PNG (بتقنية Blob المضمونة)
-function generatePNG() {
+// ==========================================================================
+// 3. حفظ كصورة PNG (مع دعم نافذة الحفظ والمشاركة الرسمية للجوالات)
+// ==========================================================================
+async function generatePNG() {
   const invoiceElement = document.getElementById("invoiceA4");
   const pngBtn = document.getElementById("pngBtn");
   const originalText = pngBtn.textContent;
@@ -274,32 +290,50 @@ function generatePNG() {
   const currentZoom = invoiceElement.style.zoom || "";
   invoiceElement.style.zoom = "1";
 
-  html2canvas(invoiceElement, { 
-    scale: 2, 
-    useCORS: true,
-    allowTaint: true,
-    windowWidth: 1200 
-  }).then(canvas => {
-    canvas.toBlob(function(blob) {
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      const invNum = document.getElementById("invoiceNumber").value || "Invoice";
+  const isMobile = window.innerWidth < 768;
+  const renderScale = isMobile ? 1.5 : 2;
+
+  try {
+    const canvas = await html2canvas(invoiceElement, { 
+      scale: renderScale, 
+      useCORS: true,
+      allowTaint: true,
+      windowWidth: 1200 
+    });
+
+    const invNum = document.getElementById("invoiceNumber").value || "Invoice";
+    const fileName = `فاتورة_${invNum}.png`;
+
+    canvas.toBlob(async function(blob) {
+      if (!blob) throw new Error("Canvas to Blob failed");
+
+      // إذا كان المستخدم من الجوال ويدعم المشاركة
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
+        const file = new File([blob], fileName, { type: blob.type });
+        await navigator.share({
+          files: [file],
+          title: `فاتورة رقم ${invNum}`
+        });
+      } else {
+        // الطريقة التقليدية للكمبيوتر
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      }
       
-      link.href = blobUrl;
-      link.download = `فاتورة_${invNum}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
       invoiceElement.style.zoom = currentZoom;
       pngBtn.textContent = originalText;
       pngBtn.disabled = false;
     }, 'image/png');
-  }).catch(err => {
+  } catch (err) {
     invoiceElement.style.zoom = currentZoom;
     pngBtn.textContent = originalText;
     pngBtn.disabled = false;
-    alert("لم يتم الحفظ! تأكد أن صورة القالب ليست من رابط خارجي يحظر التحميل.");
-  });
+    alert("لم يتم الحفظ! تأكد أن المتصفح يسمح بتنزيل الصور أو استخدم زر الطباعة.");
+  }
 }
