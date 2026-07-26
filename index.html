@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام الفواتير الاحترافي - القهوة الملكية</title>
+  <!-- خط Google Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- ملف التنسيقات -->
+  <link rel="stylesheet" href="style.css">
+  <!-- مكتبات التصدير -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <header class="top-nav no-print">
+    <h1>نظام الفواتير الاحترافي</h1>
+    <div class="nav-links">
+      <a href="index.html" class="active">الفاتورة</a>
+      <a href="settings.html">الإعدادات ⚙️</a>
+    </div>
+  </header>
+
+  <div class="main-container">
+    
+    <!-- واجهة الإدخال -->
+    <aside class="form-section no-print">
+      <h2>بيانات الفاتورة</h2>
+      <form id="invoiceForm">
+        
+        <div class="form-group">
+          <label for="customerName">اسم العميل:</label>
+          <input type="text" id="customerName" placeholder="أدخل اسم العميل" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="invoiceNumber">رقم الفاتورة:</label>
+            <input type="text" id="invoiceNumber">
+          </div>
+          <div class="form-group">
+            <label for="invoiceDate">تاريخ الفاتورة:</label>
+            <input type="text" id="invoiceDate">
+          </div>
+        </div>
+
+        <h3>الخدمات المقدمة</h3>
+        <div id="servicesContainer"></div>
+        <button type="button" id="addServiceBtn" class="btn btn-secondary">+ إضافة خدمة</button>
+
+        <div class="form-group" style="margin-top: 20px;">
+          <label for="deposit">المبلغ المدفوع (العربون):</label>
+          <input type="number" id="deposit" value="0" min="0" step="0.01">
+        </div>
+
+        <div class="actions">
+          <button type="button" id="printBtn" class="btn btn-primary">🖨️ طباعة</button>
+          <button type="button" id="pdfBtn" class="btn btn-danger">📄 تحميل PDF</button>
+          <button type="button" id="pngBtn" class="btn btn-success">🖼️ حفظ كصورة PNG</button>
+          <button type="button" id="newInvoiceBtn" class="btn btn-warning">🔄 فاتورة جديدة</button>
+        </div>
+
+      </form>
+    </aside>
+
+    <!-- منطقة معاينة الفاتورة A4 -->
+    <main class="preview-section">
+      <div id="invoiceA4" class="invoice-page">
+        <img id="templateImg" src="https://i.postimg.cc/j58LG5R6/fatwrt.png" alt="قالب الفاتورة">
+        <div id="overlayContainer" class="overlay-container"></div>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="coordinates.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
