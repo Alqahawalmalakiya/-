@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام الفواتير الاحترافي - القهوة الملكية</title>
-  <!-- خط Google Cairo -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  <!-- ملف التنسيقات -->
   <link rel="stylesheet" href="style.css">
-  <!-- مكتبات التصدير -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -25,12 +22,11 @@
   </header>
 
   <div class="main-container">
-    
-    <!-- واجهة الإدخال -->
+
     <aside class="form-section no-print">
       <h2>بيانات الفاتورة</h2>
       <form id="invoiceForm">
-        
+
         <div class="form-group">
           <label for="customerName">اسم العميل:</label>
           <input type="text" id="customerName" placeholder="أدخل اسم العميل" required>
@@ -66,7 +62,6 @@
       </form>
     </aside>
 
-    <!-- منطقة معاينة الفاتورة A4 -->
     <main class="preview-section">
       <div id="invoiceA4" class="invoice-page">
         <img id="templateImg" src="https://i.postimg.cc/j58LG5R6/fatwrt.png" alt="قالب الفاتورة">
