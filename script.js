@@ -246,20 +246,34 @@ async function generatePDF() {
     const fileName = `فاتورة_${invNum}.pdf`;
     const pdfBlob = pdf.output('blob');
 
-    // إذا كان المستخدم من الجوال ويدعم ميزة مشاركة الملفات الرسمية
-    if (navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], fileName, { type: pdfBlob.type })] })) {
-      const file = new File([pdfBlob], fileName, { type: pdfBlob.type });
-      await navigator.share({
-        files: [file],
-        title: `فاتورة رقم ${invNum}`,
-        text: 'مرفق لكم الفاتورة'
-      });
-    } else {
-      // الطريقة المعتمدة للكمبيوتر والمتصفحات التي لا تدعم المشاركة
+    // ملاحظة مهمة: navigator.share() على الجوال يشترط أن يُستدعى ضمن نفس
+    // "ثقة الإيماءة" (user gesture) الخاصة بضغطة الزر. بعد await طويل مثل
+    // html2canvas قد يرفضه المتصفح بصمت (NotAllowedError). لذلك نلفّه بمحاولة
+    // منفصلة، وإن فشل ننتقل فوراً لطريقة التحميل المباشر بدل أن يتوقف كل شيء.
+    const file = new File([pdfBlob], fileName, { type: pdfBlob.type });
+    let sharedOk = false;
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `فاتورة رقم ${invNum}`,
+          text: 'مرفق لكم الفاتورة'
+        });
+        sharedOk = true;
+      } catch (shareErr) {
+        // المستخدم ألغى المشاركة، أو رفضها المتصفح لانتهاء ثقة الإيماءة — لا مشكلة، ننتقل للتحميل المباشر
+        console.warn("Share failed, falling back to direct download:", shareErr);
+      }
+    }
+
+    if (!sharedOk) {
+      // الطريقة المعتمدة للكمبيوتر والمتصفحات التي لا تدعم المشاركة (أو فشلت)
       const blobUrl = URL.createObjectURL(pdfBlob);
       const downloadLink = document.createElement('a');
       downloadLink.href = blobUrl;
       downloadLink.download = fileName;
+      downloadLink.target = '_blank'; // مهم على iOS Safari: يفتح كنسخة احتياطية إن تجاهل خاصية download
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -304,36 +318,46 @@ async function generatePNG() {
     const invNum = document.getElementById("invoiceNumber").value || "Invoice";
     const fileName = `فاتورة_${invNum}.png`;
 
-    canvas.toBlob(async function(blob) {
-      if (!blob) throw new Error("Canvas to Blob failed");
+    // تحويل toBlob إلى Promise حقيقي؛ الشكل القديم (callback) كان يمنع
+    // try/catch/finally الخارجي من التقاط أي خطأ يحدث بداخله، فيبقى
+    // الزر معطلاً للأبد بصمت عند أي فشل (وهذا ما كان يحدث على الجوال).
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Canvas to Blob failed"))), 'image/png');
+    });
 
-      // إذا كان المستخدم من الجوال ويدعم المشاركة
-      if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: blob.type })] })) {
-        const file = new File([blob], fileName, { type: blob.type });
-        await navigator.share({
-          files: [file],
-          title: `فاتورة رقم ${invNum}`
-        });
-      } else {
-        // الطريقة التقليدية للكمبيوتر
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    // نفس منطق PDF: navigator.share بعد await طويل قد يُرفض على الجوال
+    // (NotAllowedError) لانتهاء ثقة الإيماءة، لذلك نتعامل مع فشله كحالة
+    // طبيعية وننتقل فوراً للتحميل المباشر بدل ترك الخطأ يهرب صامتاً.
+    const file = new File([blob], fileName, { type: blob.type });
+    let sharedOk = false;
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `فاتورة رقم ${invNum}` });
+        sharedOk = true;
+      } catch (shareErr) {
+        console.warn("Share failed, falling back to direct download:", shareErr);
       }
-      
-      invoiceElement.style.zoom = currentZoom;
-      pngBtn.textContent = originalText;
-      pngBtn.disabled = false;
-    }, 'image/png');
+    }
+
+    if (!sharedOk) {
+      // الطريقة التقليدية للكمبيوتر (ومسار احتياطي للجوال)
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      link.target = '_blank'; // مهم على iOS Safari
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    }
   } catch (err) {
+    console.error("PNG Error:", err);
+    alert("لم يتم الحفظ! تأكد أن المتصفح يسمح بتنزيل الصور أو استخدم زر الطباعة.");
+  } finally {
     invoiceElement.style.zoom = currentZoom;
     pngBtn.textContent = originalText;
     pngBtn.disabled = false;
-    alert("لم يتم الحفظ! تأكد أن المتصفح يسمح بتنزيل الصور أو استخدم زر الطباعة.");
   }
 }
