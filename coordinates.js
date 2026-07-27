@@ -1,8 +1,3 @@
-/**
- * coordinates.js
- * ملف الإحداثيات المحدث ليطابق تصميم "ضيافة القهوة الملكية للحفلات"
- */
-
 const positions = {
   headerPhone: { top: 215, align: "center", width: "100%", fontSize: "14px", fontWeight: "bold", color: "#5a4a42" },
 
