@@ -34,13 +34,12 @@ function initApp() {
   let nextNum = String(parsedNum + 1).padStart(4, '0');
   document.getElementById("invoiceNumber").value = nextNum;
 
-  // إضافة صف خدمة أول فارغ ليعبئه المستخدم بنفسه
   addServiceRow();
 
   renderInvoice();
 }
 
-function addServiceRow(item = "ضيافة رجالية", desc = "", days = "", price = "") {
+function addServiceRow(item = "", desc = "", days = "", price = "") {
   const container = document.getElementById("servicesContainer");
   const id = Date.now() + Math.floor(Math.random() * 1000);
 
@@ -93,7 +92,7 @@ function renderInvoice() {
   const invoiceDate = document.getElementById("invoiceDate").value;
   const deposit = parseFloat(document.getElementById("deposit").value) || 0;
 
-  const companyPhone = localStorage.getItem("company_phone") || "";
+  const companyPhone = localStorage.getItem("company_phone") || "+966536895975";
   const footerPhone  = "0536895975";
 
   drawText(companyPhone, positions.headerPhone);
